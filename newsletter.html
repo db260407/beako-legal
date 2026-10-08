@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>E-Mail-Tipps – Beako</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .button { font: inherit; font-weight: 600; background: #E8B931; color: #1B1A17; border: 0; border-radius: 14px; padding: 14px 22px; cursor: pointer; }
+  .button[disabled] { opacity: .6; cursor: default; }
+</style>
+</head>
+<body>
+<main>
+<header><div class="logo">B</div><strong>Beako</strong></header>
+<h1 id="title"></h1>
+<div class="card">
+  <p id="body"></p>
+  <p><button class="button" id="go" type="button"></button></p>
+  <p class="muted" id="result" role="status"></p>
+</div>
+<p class="muted"><a href="index.html">Beako</a> · <a id="privacy" href="datenschutz.html"></a> · <a href="impressum.html">Impressum</a></p>
+</main>
+<script>
+  // Confirm (double opt-in) or unsubscribe from the email tips. The change
+  // only happens on the button press (a POST) — never on opening the link,
+  // because mail scanners open links on their own.
+  var ENDPOINT = 'https://jldxodctxeczlesgbtpq.supabase.co/functions/v1/email-link';
+  var params = new URLSearchParams(location.search);
+  var action = params.get('a') === 'confirm' ? 'confirm' : 'unsubscribe';
+  var token = params.get('t') || '';
+  var en = params.get('lang') === 'en';
+  var copy = en ? {
+    confirm: { title: 'Confirm email tips', body: 'One click and you get weekly tips and offers about Beako. You can unsubscribe at any time via the link in every email or in the app under Settings.', button: 'Yes, send me tips' },
+    unsubscribe: { title: 'Unsubscribe from email tips', body: 'You will no longer get weekly tips by email. Your account and everything in the app stay as they are.', button: 'Unsubscribe' },
+    confirmed: 'Done! Your first tip arrives within the next few days.',
+    unsubscribed: 'Done – you will not get any more tips. You can switch them back on in the app under Settings.',
+    not_requested: 'The tips are switched off in the app. Switch them on under Settings first.',
+    invalid: 'This link is invalid or outdated.',
+    error: 'That did not work. Please try again in a moment.',
+    privacy: 'Privacy'
+  } : {
+    confirm: { title: 'E-Mail-Tipps bestätigen', body: 'Ein Klick und du bekommst jede Woche Tipps und Angebote rund um Beako. Abmelden kannst du dich jederzeit über den Link in jeder Mail oder in der App unter Einstellungen.', button: 'Ja, Tipps schicken' },
+    unsubscribe: { title: 'Von den E-Mail-Tipps abmelden', body: 'Du bekommst dann keine wöchentlichen Tipps mehr per E-Mail. Dein Konto und alles in der App bleiben, wie sie sind.', button: 'Abmelden' },
+    confirmed: 'Geschafft! Dein erster Tipp kommt in den nächsten Tagen.',
+    unsubscribed: 'Erledigt – du bekommst keine Tipps mehr. In der App unter Einstellungen kannst du sie jederzeit wieder einschalten.',
+    not_requested: 'Die Tipps sind in der App ausgeschaltet. Schalte sie zuerst unter Einstellungen ein.',
+    invalid: 'Dieser Link ist ungültig oder veraltet.',
+    error: 'Das hat nicht geklappt. Bitte versuch es gleich nochmal.',
+    privacy: 'Datenschutz'
+  };
+  if (en) {
+    document.documentElement.lang = 'en';
+    document.getElementById('privacy').href = 'privacy.html';
+  }
+  document.getElementById('privacy').textContent = copy.privacy;
+  document.title = copy[action].title + ' – Beako';
+  document.getElementById('title').textContent = copy[action].title;
+  document.getElementById('body').textContent = copy[action].body;
+  var go = document.getElementById('go');
+  var result = document.getElementById('result');
+  go.textContent = copy[action].button;
+  if (!/^[0-9a-f-]{36}$/i.test(token)) {
+    go.hidden = true;
+    result.textContent = copy.invalid;
+  }
+  go.addEventListener('click', function () {
+    go.disabled = true;
+    fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a: action, t: token }) })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        var key = data && copy[data.result] ? data.result : 'error';
+        result.textContent = copy[key];
+        if (key === 'error') go.disabled = false; else go.hidden = true;
+      })
+      .catch(function () { result.textContent = copy.error; go.disabled = false; });
+  });
+</script>
+</body>
+</html>
